@@ -1,0 +1,32 @@
+name: Build SeedSwap
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  OUNCE_DEVKIT: 75cea5538b3a57d8f2ecf53354274cf00a365d20
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build toolchain image
+        run: |
+          git clone --quiet https://github.com/ouncebrew/ounce-devkit.git "$RUNNER_TEMP/ounce-devkit"
+          git -C "$RUNNER_TEMP/ounce-devkit" checkout --quiet "$OUNCE_DEVKIT"
+          docker build -t ounce-devkit "$RUNNER_TEMP/ounce-devkit"
+
+      - name: Compile SeedSwap
+        run: docker run --rm -v "$PWD/seedswap:/work" -w /work ounce-devkit make -j2
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: seedswap-nro
+          path: seedswap/seedswap.nro
+          if-no-files-found: error
